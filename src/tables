@@ -1,0 +1,96 @@
+// -------- ENUMS (Tipos predefinidos) --------
+enum RolUsuario {
+  ADMIN
+  MESERO
+  COCINA
+}
+
+enum EstadoPedido {
+  PENDIENTE_PAGO
+  RECIBIDO_EN_COCINA
+  EN_PREPARACION
+  LISTO_PARA_SERVIR
+  ENTREGADO
+  CANCELADO
+}
+
+enum OrigenPedido {
+ CLIENTE_APP
+ MESERO_MANUAL
+}
+
+// -------- MODELOS DE DATOS (Tus tablas) --------
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  rol       RolUsuario
+  pedidos   Pedido[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Categoria {
+  id        Int        @id @default(autoincrement())
+  nombre    String     @unique
+  productos Producto[]
+}
+
+model Producto {
+  id          Int                 @id @default(autoincrement())
+  nombre      String              @unique
+  descripcion String
+  precio      Float
+  imagenUrl   String?             // Opcional
+  disponible  Boolean             @default(true)
+  categoriaId Int
+  categoria   Categoria           @relation(fields: [categoriaId], references: [id])
+  pedidos     ProductosEnPedido[] // Relación con la tabla intermedia
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+}
+
+model Mesa {
+  id      Int      @id @default(autoincrement())
+  numero  Int      @unique
+  ocupada Boolean  @default(false)
+  pedidos Pedido[] // Una mesa puede tener muchos pedidos a lo largo del tiempo
+}
+
+model Pedido {
+  id              Int                 @id @default(autoincrement())
+  nombreCliente   String
+  total           Float
+  estado          EstadoPedido        @default(PENDIENTE_PAGO)
+  mesaId          Int
+  mesa            Mesa                @relation(fields: [mesaId], references: [id])
+  atendidoPorId   Int?                // El mesero que confirmó el pago
+  atendidoPor     Usuario?            @relation(fields: [atendidoPorId], references: [id])
+  preparadoPorId  Int?                // El cocinero que esta haciendo el pedido
+  preparadoPor    Usuario?            @relation(fields: [preparadoPorId], references: [id])
+  items           ProductosEnPedido[] // La lista de productos en este pedido
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+}
+
+// Tabla intermedia para la relación muchos-a-muchos entre Pedido y Producto
+model ProductosEnPedido {
+  id             Int           @id @default(autoincrement())
+  pedidoId       Int
+  pedido         Pedido        @relation(fields: [pedidoId], references: [id])
+  productoId     Int
+  producto       Producto      @relation(fields: [productoId], references: [id])
+  cantidad       Int
+  precio         Float
+  origenPedido   OrigenPedido  // Indica si el pedido fue por QR o por el mesero
+}
+
+// Modelo para el Portal Cautivo
+model SesionInternet {
+  id        Int      @id @default(autoincrement())
+  ipAddress String
+  folio     String?
+  inicio    DateTime @default(now())
+  fin       DateTime
+  activa    Boolean  @default(true)
+}
